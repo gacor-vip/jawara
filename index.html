@@ -3,596 +3,381 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garuda Hoki - Portal Game</title>
+    <title>Progressive Tracker & Media</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { 
-            background-color: #0f0f0f; 
-            color: #ffffff; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            padding-bottom: 70px; /* Jarak untuk navigasi bawah */
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #020617; /* Slate 950 */
+            color: #f8fafc;
+        }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Styling for embeds to make them fit nicely */
+        .embed-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #000;
         }
         
-        /* Efek Neon */
-        .text-neon { color: #ff007f; text-shadow: 0 0 5px #ff007f; }
-        .bg-neon { background-color: #ff007f; }
-        .border-neon { border: 2px solid #ff007f; box-shadow: 0 0 10px #ff007f, inset 0 0 5px #ff007f; }
-        .btn-neon { background-color: #ff007f; color: white; transition: 0.3s; }
-        .btn-neon:hover { background-color: #cc0066; box-shadow: 0 0 15px #ff007f; }
-        
-        /* Layout Halaman */
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .page { display: none; padding: 15px; }
-        .page.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Ticker Animasi */
-        .ticker-wrap { width: 100%; overflow: hidden; background-color: #000; padding: 5px 0; border-bottom: 1px solid #333; }
-        .ticker { display: inline-block; white-space: nowrap; animation: ticker 20s linear infinite; }
-        @keyframes ticker { 0% { transform: translate3d(100%, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
-
-        /* Tombol Melayang Bawah */
-        .float-btn { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%; border: 4px solid #1a1a1a; display: flex; align-items: center; justify-content: center; }
-        
-        /* Notifikasi (Toast) */
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 8px; z-index: 9999; display: none; border-left: 4px solid #ff007f; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        /* Modal Animation */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-overlay { animation: fadeIn 0.2s ease-out forwards; }
+        .modal-content { animation: slideUp 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="relative min-h-screen max-w-md mx-auto border-x border-gray-800 bg-[#1a1a1a]">
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-6 custom-scroll">
 
-    <!-- Notifikasi Toast -->
-    <div id="toast">Notifikasi</div>
-
-    <!-- Header Atas -->
-    <header class="flex justify-between items-center p-4 bg-[#111] sticky top-0 z-40 border-b border-gray-800 shadow-md">
-        <div class="flex items-center gap-2">
-            <button type="button" onclick="toggleSidebar()" class="text-2xl text-neon focus:outline-none">☰</button>
-            <div class="text-xl font-bold italic cursor-pointer" onclick="showPage('home')"><span class="text-red-500">GARUDA</span> <span class="text-yellow-500">HOKI</span></div>
-        </div>
-        <div class="text-sm font-bold bg-gray-800 px-3 py-1 rounded-full text-neon" id="header-balance">Rp 0</div>
+    <header class="w-full max-w-2xl text-center mb-6 mt-2">
+        <h1 class="text-3xl sm:text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+            Progressive Tracker
+        </h1>
+        <p class="text-slate-400 mt-2 text-sm sm:text-base">Tahan dirimu. Waktu tunggu akan dikali 2 setiap kali kamu melakukannya.</p>
     </header>
 
-    <!-- Overlay Gelap untuk Sidebar -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden" onclick="toggleSidebar()"></div>
-    
-    <!-- Sidebar Menu Kiri -->
-    <div id="sidebar" class="fixed top-0 left-0 w-64 h-full bg-[#111] z-50 transform -translate-x-full transition-transform duration-300 border-r border-gray-800 flex flex-col shadow-2xl shadow-pink-900/20">
-        <div class="p-4 flex justify-between items-center border-b border-gray-800">
-            <span class="font-bold text-neon">Menu Utama</span>
-            <button type="button" onclick="toggleSidebar()" class="text-gray-400 text-xl focus:outline-none">✕</button>
-        </div>
-        
-        <!-- Jika Belum Login -->
-        <div class="p-4 flex flex-col gap-3" id="sidebar-auth-buttons">
-            <button type="button" onclick="openMenuPage('login')" class="w-full btn-neon py-2 rounded font-bold shadow-lg">MASUK</button>
-            <button type="button" onclick="openMenuPage('register')" class="w-full border-neon py-2 rounded font-bold text-neon hover:bg-neon hover:text-white transition-all">DAFTAR</button>
-        </div>
-        
-        <!-- Jika Sudah Login -->
-        <div class="p-4 flex flex-col gap-3 hidden" id="sidebar-user-info">
-            <p class="text-sm text-gray-400">Selamat datang,</p>
-            <p class="font-bold text-xl text-neon" id="sidebar-username">User</p>
-            <button type="button" onclick="logout()" class="w-full border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all py-2 rounded font-bold mt-4">LOGOUT</button>
-        </div>
-        
-        <div class="flex-grow"></div>
-        <div class="p-4 text-xs text-gray-500 text-center">© 2026 Garuda Hoki by Nodefense</div>
+    <div id="auth-status" class="w-full max-w-2xl text-center py-4 text-cyan-400 animate-pulse font-medium">
+        Menghubungkan ke Server Cloud...
     </div>
 
-    <!-- AREA KONTEN UTAMA -->
-    <main>
-        <!-- HALAMAN BERANDA -->
-        <div id="home-page" class="page active">
-            <div class="ticker-wrap mb-4 rounded">
-                <div class="ticker text-sm text-yellow-400 font-semibold">🔥 Selamat datang di Garuda Hoki! | Event Turnamen Rp 100 Juta sedang berlangsung! | Mainkan game viral: Mahjong Ways & Gates of Olympus!</div>
+    <main class="w-full max-w-2xl space-y-6 hidden" id="main-content">
+        
+        <div class="glass-panel rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden">
+            <!-- Background glow -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-indigo-500/20 blur-[50px] -z-10"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Time Since Last -->
+                <div class="bg-slate-900/50 rounded-2xl p-4 border border-slate-800">
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Waktu Berjalan</h3>
+                    <div id="time-elapsed" class="text-2xl font-mono font-semibold text-white">00j 00m 00d</div>
+                </div>
+                
+                <!-- Target / Time Remaining -->
+                <div class="bg-slate-900/50 rounded-2xl p-4 border border-slate-800">
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Sisa Waktu Menunggu</h3>
+                    <div id="time-remaining" class="text-2xl font-mono font-semibold text-cyan-400">00j 00m 00d</div>
+                </div>
             </div>
 
-            <!-- Ticker Jackpot Palsu -->
-            <div class="bg-[#111] p-4 rounded-xl border-neon mb-6 text-center shadow-lg shadow-pink-500/10">
-                <p class="text-xs text-gray-400 mb-1 tracking-widest uppercase">Pragmatic Play</p>
-                <h2 class="text-xl font-extrabold text-blue-400 mb-2 drop-shadow-md">JACKPOT PLAY</h2>
-                <div class="text-2xl font-mono tracking-widest text-white font-bold" id="jackpot-amount">
-                    IDR <span class="text-neon">13.242.176.503</span>
-                </div>
+            <div class="mb-4">
+                <span class="text-sm text-slate-400">Target Interval Saat Ini: </span>
+                <span id="interval-display" class="inline-block bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full text-sm font-bold border border-indigo-500/30">1 Hari</span>
             </div>
 
-            <!-- Menu Kategori Melintang -->
-            <div class="flex gap-4 overflow-x-auto hide-scrollbar mb-6 pb-2 text-sm text-gray-400 font-bold border-b border-gray-800">
-                <div class="flex flex-col items-center gap-1 min-w-[75px] text-white cursor-pointer"><span class="text-2xl drop-shadow">🔥</span>HOT GAMES</div>
-                <div class="flex flex-col items-center gap-1 min-w-[75px] cursor-pointer hover:text-white"><span class="text-2xl">🎰</span>SLOTS</div>
-                <div class="flex flex-col items-center gap-1 min-w-[75px] cursor-pointer hover:text-white"><span class="text-2xl">🎲</span>CASINO</div>
-                <div class="flex flex-col items-center gap-1 min-w-[75px] cursor-pointer hover:text-white"><span class="text-2xl">🏎️</span>RACE</div>
-            </div>
-
-            <!-- Kumpulan Game -->
-            <div class="flex items-center gap-2 mb-4">
-                <span class="text-green-500 text-xl">💎</span>
-                <h3 class="font-bold text-lg">Game Populer (Peluang 10%)</h3>
-            </div>
-            
-            <div class="grid grid-cols-3 gap-3">
-                <div onclick="playGame('Mahjong Ways')" class="bg-[#222] rounded-lg overflow-hidden cursor-pointer hover:border-neon transition-all shadow-md">
-                    <img src="https://via.placeholder.com/150x150/b91c1c/ffffff?text=Mahjong" class="w-full h-auto aspect-square object-cover" alt="Mahjong">
-                    <p class="text-[10px] text-center p-2 font-bold truncate">Mahjong Ways</p>
-                </div>
-                <div onclick="playGame('Gates of Olympus')" class="bg-[#222] rounded-lg overflow-hidden cursor-pointer hover:border-neon transition-all shadow-md">
-                    <img src="https://via.placeholder.com/150x150/1d4ed8/ffffff?text=Olympus" class="w-full h-auto aspect-square object-cover" alt="Olympus">
-                    <p class="text-[10px] text-center p-2 font-bold truncate">Gates of Olympus</p>
-                </div>
-                <div onclick="playGame('Starlight Princess')" class="bg-[#222] rounded-lg overflow-hidden cursor-pointer hover:border-neon transition-all shadow-md">
-                    <img src="https://via.placeholder.com/150x150/be185d/ffffff?text=Starlight" class="w-full h-auto aspect-square object-cover" alt="Starlight">
-                    <p class="text-[10px] text-center p-2 font-bold truncate">Starlight Princess</p>
-                </div>
-                <div onclick="playGame('Sweet Bonanza')" class="bg-[#222] rounded-lg overflow-hidden cursor-pointer hover:border-neon transition-all shadow-md">
-                    <img src="https://via.placeholder.com/150x150/ec4899/ffffff?text=Bonanza" class="w-full h-auto aspect-square object-cover" alt="Bonanza">
-                    <p class="text-[10px] text-center p-2 font-bold truncate">Sweet Bonanza</p>
-                </div>
-                <div onclick="playGame('Koi Gate')" class="bg-[#222] rounded-lg overflow-hidden cursor-pointer hover:border-neon transition-all shadow-md">
-                    <img src="https://via.placeholder.com/150x150/0f766e/ffffff?text=Koi+Gate" class="w-full h-auto aspect-square object-cover" alt="Koi">
-                    <p class="text-[10px] text-center p-2 font-bold truncate">Koi Gate</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- HALAMAN MAIN GAME (ALGORITMA 10%) -->
-        <div id="play-page" class="page text-center">
-            <button type="button" onclick="showPage('home')" class="text-gray-400 text-sm mb-4 flex items-center gap-1">
-                <span>◀</span> Kembali ke Beranda
+            <button id="action-btn" disabled class="w-full relative group overflow-hidden bg-pink-600 text-white font-bold py-5 px-6 rounded-2xl text-lg transition-all duration-300 hover:bg-pink-500 hover:shadow-[0_0_30px_rgba(236,72,153,0.4)] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none">
+                <span class="relative z-10" id="btn-text">MEMUAT...</span>
             </button>
-            <h2 class="text-3xl font-black mb-4 text-neon drop-shadow-md" id="game-title">Nama Game</h2>
-            
-            <div class="bg-[#111] p-6 rounded-xl border border-gray-700 mb-6 shadow-xl">
-                <p class="text-gray-400 mb-1 text-sm">Saldo Taruhan Anda:</p>
-                <p class="text-3xl font-bold text-green-400 mb-6" id="game-balance">Rp 0</p>
+            <p class="text-xs text-slate-500 mt-4">Klik tombol ini hanya jika kamu sudah melakukannya. Target berikutnya otomatis dikali dua.</p>
+        </div>
+
+        <div class="glass-panel rounded-3xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    Media Terintegrasi
+                </h2>
                 
-                <div class="mb-6">
-                    <label class="block text-sm text-gray-400 mb-2">Pasang Nominal Taruhan (Bet):</label>
-                    <input type="number" id="bet-amount" class="w-full p-3 bg-[#222] border border-gray-600 rounded text-center text-2xl font-bold text-white focus:outline-none focus:border-neon" value="1000" min="1000">
-                </div>
-                
-                <button type="button" id="spin-btn" onclick="spinGame()" class="w-full btn-neon py-4 rounded-xl font-black text-xl uppercase tracking-widest shadow-[0_0_20px_rgba(255,0,127,0.5)] transition-all">
-                    MAINKAN (SPIN)
-                </button>
-                
-                <!-- Hasil Game Muncul Disini -->
-                <div id="game-outcome" class="text-2xl font-bold mt-6 h-10"></div>
-            </div>
-            
-            <div class="bg-[#222] p-3 rounded border border-gray-700 text-left">
-                <p class="text-xs text-yellow-500 font-bold mb-1">INFO ALGORITMA:</p>
-                <p class="text-xs text-gray-400">Game ini menggunakan simulasi RNG (Random Number Generator) ketat. Peluang kemenangan mutlak disetel di <strong>10%</strong>. Jika menang, hadiah dikalikan 2x hingga 5x acak.</p>
-            </div>
-        </div>
-
-        <!-- HALAMAN LOGIN -->
-        <div id="login-page" class="page">
-            <h2 class="text-2xl font-bold mb-6 text-center text-white">Masuk ke Akun</h2>
-            <div class="flex flex-col gap-4 bg-[#111] p-6 rounded-xl border border-gray-800 shadow-lg">
-                <input type="text" id="login-user" placeholder="Masukkan Username" class="w-full p-4 bg-[#222] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-neon">
-                <input type="password" id="login-pass" placeholder="Masukkan Password" class="w-full p-4 bg-[#222] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-neon">
-                <button type="button" onclick="login()" class="w-full btn-neon py-4 rounded-lg font-bold mt-2 shadow-lg tracking-wider">LOGIN SEKARANG</button>
-                <p class="text-center text-sm text-gray-400 mt-4">Belum punya akun? <span class="text-neon cursor-pointer font-bold hover:underline" onclick="showPage('register')">Daftar disini</span></p>
-            </div>
-        </div>
-
-        <!-- HALAMAN REGISTER -->
-        <div id="register-page" class="page">
-            <h2 class="text-2xl font-bold mb-6 text-center text-white">Buat Akun Baru</h2>
-            <div class="flex flex-col gap-4 bg-[#111] p-6 rounded-xl border border-gray-800 shadow-lg">
-                <input type="text" id="reg-user" placeholder="Username (Min 4 Karakter)" class="w-full p-4 bg-[#222] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-neon">
-                <input type="password" id="reg-pass" placeholder="Buat Password" class="w-full p-4 bg-[#222] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-neon">
-                <button type="button" onclick="register()" class="w-full border-neon text-neon py-4 rounded-lg font-bold mt-2 hover:bg-neon hover:text-white transition-all shadow-lg tracking-wider">DAFTAR SEKARANG</button>
-                <p class="text-center text-sm text-gray-400 mt-4">Sudah punya akun? <span class="text-neon cursor-pointer font-bold hover:underline" onclick="showPage('login')">Masuk disini</span></p>
-            </div>
-        </div>
-
-        <!-- HALAMAN PROFIL / DEPOSIT -->
-        <div id="profile-page" class="page">
-            <h2 class="text-2xl font-bold mb-4 text-white">Profil & Keuangan</h2>
-            <div class="bg-[#222] p-5 rounded-xl border border-gray-700 mb-6 shadow-md">
-                <p class="text-gray-400 text-sm">Username Pengguna</p>
-                <p class="font-black text-2xl mb-4" id="prof-username">-</p>
-                <p class="text-gray-400 text-sm">Saldo Aktif</p>
-                <p class="font-black text-3xl text-green-400 drop-shadow" id="prof-balance">Rp 0</p>
-            </div>
-            
-            <div class="bg-[#111] p-5 border border-gray-800 rounded-xl shadow-lg border-l-4 border-l-green-500">
-                <h3 class="font-bold text-white mb-1">Menu Deposit (Simulasi)</h3>
-                <p class="text-xs text-gray-400 mb-4">Uang akan langsung masuk ke saldo Anda secara instan untuk simulasi.</p>
-                <input type="number" id="deposit-amount" placeholder="Contoh: 50000 (Min 10.000)" class="w-full p-3 bg-[#222] border border-gray-700 rounded text-white mb-4 focus:outline-none focus:border-green-500 font-bold">
-                <button type="button" onclick="deposit()" class="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded font-bold shadow-lg shadow-green-900/50 transition-all">TOP UP SALDO</button>
-            </div>
-        </div>
-
-        <!-- HALAMAN ADMIN PANEL -->
-        <div id="admin-page" class="page">
-            <h2 class="text-2xl font-bold mb-2 text-yellow-500 flex items-center gap-2"><span>⚙️</span> Panel Administrator</h2>
-            <p class="text-xs text-gray-400 mb-6">Kelola data pemain simulasi. Data tersimpan di memory browser (localStorage).</p>
-            
-            <div class="bg-[#111] rounded-xl border border-gray-800 overflow-hidden shadow-lg">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-[#222] text-gray-300">
-                            <tr>
-                                <th class="p-3 font-bold border-b border-gray-700">Username</th>
-                                <th class="p-3 font-bold border-b border-gray-700">Tipe Akun</th>
-                                <th class="p-3 font-bold border-b border-gray-700">Total Saldo</th>
-                            </tr>
-                        </thead>
-                        <tbody id="admin-user-list" class="divide-y divide-gray-800">
-                            <!-- Daftar User Di-generate oleh JavaScript -->
-                        </tbody>
-                    </table>
+                <!-- Tabs -->
+                <div class="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+                    <button id="tab-tiktok" class="px-4 py-1.5 rounded-md text-sm font-semibold bg-slate-700 text-white transition-colors">TikTok</button>
+                    <button id="tab-ig" class="px-4 py-1.5 rounded-md text-sm font-semibold text-slate-400 hover:text-white transition-colors">Instagram</button>
                 </div>
             </div>
+
+            <!-- TikTok Content -->
+            <div id="content-tiktok" class="grid grid-cols-1 gap-6 transition-opacity duration-300">
+                <p class="text-xs text-slate-400 text-center mb-2">Konten langsung dari TikTok. Tekan Play untuk memutar.</p>
+                <div class="embed-container bg-slate-900/80 rounded-2xl border border-slate-800 p-2">
+                    <!-- Placeholder Embed TikTok 1 -->
+                    <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@tiktok/video/7106594312292453678" data-video-id="7106594312292453678" style="max-width: 605px;min-width: 325px;" > <section></section> </blockquote>
+                </div>
+                <div class="embed-container bg-slate-900/80 rounded-2xl border border-slate-800 p-2">
+                    <!-- Placeholder Embed TikTok 2 -->
+                    <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@tiktok/video/7279374025111948587" data-video-id="7279374025111948587" style="max-width: 605px;min-width: 325px;" > <section></section> </blockquote>
+                </div>
+            </div>
+
+            <!-- Instagram Content -->
+            <div id="content-ig" class="grid grid-cols-1 gap-6 hidden transition-opacity duration-300">
+                 <p class="text-xs text-slate-400 text-center mb-2">Konten langsung dari Instagram.</p>
+                 <div class="embed-container bg-slate-900/80 rounded-2xl border border-slate-800 p-2">
+                    <!-- Placeholder Embed Instagram -->
+                    <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/p/C0O2_P_u_T-/?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style=" background:#000; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%; width:-webkit-calc(100% - 2px); width:calc(100% - 2px);"></blockquote>
+                </div>
+            </div>
+
         </div>
     </main>
 
-    <!-- MENU NAVIGASI BAWAH (MOBILE APP STYLE) -->
-    <nav class="fixed bottom-0 left-0 w-full bg-[#111] border-t border-gray-800 flex justify-around items-center px-2 py-2 max-w-md mx-auto right-0 z-40 text-xs text-gray-400 shadow-[0_-5px_15px_rgba(0,0,0,0.5)]">
-        <div onclick="showPage('home')" class="flex flex-col items-center cursor-pointer hover:text-neon w-16">
-            <span class="text-2xl mb-1">🏠</span>
-            <span class="font-semibold">Beranda</span>
-        </div>
-        <div onclick="checkAuthAndShow('profile')" class="flex flex-col items-center cursor-pointer hover:text-neon w-16">
-            <span class="text-2xl mb-1">💳</span>
-            <span class="font-semibold">Deposit</span>
-        </div>
-        
-        <!-- Tombol Tengah Mengambang (Play/Home) -->
-        <div class="relative w-16">
-            <div onclick="showPage('home')" class="float-btn bg-neon cursor-pointer shadow-lg shadow-pink-600/50 active:scale-95 transition-transform">
-                <span class="text-white text-3xl drop-shadow-md">🔥</span>
+    <div id="custom-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm modal-overlay" id="modal-backdrop"></div>
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-sm w-full mx-4 relative z-10 modal-content shadow-2xl">
+            <div class="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/30">
+                <svg class="w-8 h-8 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             </div>
-        </div>
-
-        <!-- Tombol Admin (Otomatis Muncul Hanya Jika Login sbg Admin) -->
-        <div id="nav-admin" onclick="showPage('admin')" class="hidden flex-col items-center cursor-pointer hover:text-yellow-500 w-16">
-            <span class="text-2xl mb-1 text-yellow-500">⚙️</span>
-            <span class="font-semibold text-yellow-500">Admin</span>
-        </div>
-
-        <!-- Tombol Profil (Untuk Player) -->
-        <div onclick="checkAuthAndShow('profile')" class="flex flex-col items-center cursor-pointer hover:text-neon w-16" id="nav-profile">
-            <span class="text-2xl mb-1">👤</span>
-            <span class="font-semibold">Akun</span>
-        </div>
-    </nav>
-
-    <!-- Tombol Live Chat Melayang -->
-    <div class="fixed bottom-24 right-4 z-40">
-        <div onclick="showToast('Fitur Live Chat sedang dalam perbaikan server.')" class="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-black p-3 px-4 rounded-full shadow-lg shadow-yellow-600/30 cursor-pointer hover:scale-110 active:scale-95 transition-transform flex items-center gap-2 border-2 border-yellow-300">
-            💬 <span>CHAT</span>
+            <h3 class="text-xl font-bold text-center text-white mb-2">Yakin Sudah Melakukan?</h3>
+            <p class="text-slate-400 text-sm text-center mb-6">Waktu tunggu Anda berikutnya akan <strong>dikalikan 2</strong>. Aksi ini tidak dapat dibatalkan.</p>
+            <div class="flex gap-3">
+                <button id="modal-cancel" class="flex-1 py-3 rounded-xl font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition">Batal</button>
+                <button id="modal-confirm" class="flex-1 py-3 rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition shadow-[0_0_15px_rgba(225,29,72,0.4)]">Ya, Mulai Ulang</button>
+            </div>
         </div>
     </div>
 
-    <!-- SCRIPT JAVASCRIPT UTAMA (DILENGKAPI ANTI-CRASH) -->
-    <script>
-        // === FUNGSI UTILITAS ===
-        function showToast(msg, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.style.display = 'block';
-            toast.style.borderLeftColor = isError ? '#ff0000' : '#00ff00';
-            
-            // Hapus timer lama agar toast tidak kedap-kedip jika diklik berulang
-            if(window.toastTimer) clearTimeout(window.toastTimer);
-            window.toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3000);
-        }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        function formatRupiah(angka) {
-            let parsed = parseInt(angka);
-            if(isNaN(parsed)) parsed = 0;
-            return 'Rp ' + parsed.toLocaleString('id-ID');
-        }
+        // Global Variables supplied by environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'progressive-tracker';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { projectId: "demo" };
+        const customAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // === FUNGSI NAVIGASI ===
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if (sidebar.classList.contains('-translate-x-full')) {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-            } else {
-                sidebar.classList.add('-translate-x-full');
-                overlay.classList.add('hidden');
-            }
-        }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        function showPage(pageId) {
-            // Sembunyikan semua halaman
-            document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-            // Tampilkan halaman tujuan
-            const target = document.getElementById(pageId + '-page');
-            if(target) target.classList.add('active');
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            
-            // Jika buka admin panel, load datanya
-            if (pageId === 'admin') loadAdminData();
-        }
+        // UI Elements
+        const authStatus = document.getElementById('auth-status');
+        const mainContent = document.getElementById('main-content');
+        const timeElapsedEl = document.getElementById('time-elapsed');
+        const timeRemainingEl = document.getElementById('time-remaining');
+        const intervalDisplay = document.getElementById('interval-display');
+        const actionBtn = document.getElementById('action-btn');
+        const btnText = document.getElementById('btn-text');
+        
+        // Modal Elements
+        const customModal = document.getElementById('custom-modal');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalConfirm = document.getElementById('modal-confirm');
 
-        function openMenuPage(pageId) {
-            toggleSidebar(); // Tutup sidebar dulu
-            showPage(pageId);
-        }
+        // Tab Elements
+        const tabTiktok = document.getElementById('tab-tiktok');
+        const tabIg = document.getElementById('tab-ig');
+        const contentTiktok = document.getElementById('content-tiktok');
+        const contentIg = document.getElementById('content-ig');
 
-        function checkAuthAndShow(page) {
-            let currentUser = null;
-            try { currentUser = JSON.parse(localStorage.getItem('gh_currentUser')); } catch(e){}
-            
-            if (!currentUser) {
-                showToast("Silakan Daftar atau Login terlebih dahulu!", true);
-                showPage('login');
-            } else {
-                showPage(page);
-            }
-        }
+        // State
+        let userId = null;
+        let unsubscribe = null;
+        let timerInterval = null;
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+        
+        let appState = {
+            lastRelapse: 0,
+            currentIntervalMs: ONE_DAY_MS, // Start at 1 day
+            targetTime: 0
+        };
 
-        // === INISIALISASI DATABASE AMAN (ANTI ERROR) ===
-        function initDB() {
-            let users = [];
-            // Gunakan Try Catch agar script tidak berhenti jika localStorage corrupt
+        async function initApp() {
             try {
-                let storedUsers = localStorage.getItem('gh_users'); // Kunci baru gh_users
-                if (storedUsers) {
-                    users = JSON.parse(storedUsers);
+                if (customAuthToken) {
+                    await signInWithCustomToken(auth, customAuthToken);
+                } else {
+                    await signInAnonymously(auth);
                 }
+                
+                userId = auth.currentUser.uid;
+                authStatus.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                
+                // Load Embed Scripts dynamically now that UI is shown
+                loadEmbedScripts();
+                
+                listenToData();
+                startTimer();
+                
             } catch (error) {
-                console.warn("Storage rusak, mereset database...");
-                users = [];
+                console.error("Auth Error:", error);
+                authStatus.textContent = "Gagal terhubung ke Cloud. Pastikan koneksi stabil.";
+                authStatus.classList.replace('text-cyan-400', 'text-rose-500');
             }
-
-            // Buat akun admin jika database kosong atau bukan format array
-            if (!Array.isArray(users) || users.length === 0) {
-                users = [{
-                    username: 'admin',
-                    password: 'admin123',
-                    role: 'admin',
-                    balance: 999999999
-                }];
-                try { localStorage.setItem('gh_users', JSON.stringify(users)); } catch(e){}
-            }
-            
-            updateUI();
-            
-            // Animasi Jackpot Palsu yang aman
-            setInterval(() => {
-                try {
-                    let jpEl = document.getElementById('jackpot-amount');
-                    if (jpEl) {
-                        let textValue = jpEl.innerText.replace(/[^0-9]/g, '');
-                        let current = parseInt(textValue);
-                        if(isNaN(current)) current = 13242176503; // Fallback value
-                        
-                        current += Math.floor(Math.random() * 55000) + 12000;
-                        jpEl.innerHTML = `IDR <span class="text-neon">${current.toLocaleString('id-ID')}</span>`;
-                    }
-                } catch(e) {}
-            }, 2500);
         }
 
-        // === SISTEM AUTHENTIKASI ===
-        function register() {
-            const user = document.getElementById('reg-user').value.trim();
-            const pass = document.getElementById('reg-pass').value.trim();
-            
-            if (!user || !pass) return showToast("Username dan password wajib diisi!", true);
-            if (user.length < 4) return showToast("Username minimal 4 karakter!", true);
-            
-            let users = [];
-            try { users = JSON.parse(localStorage.getItem('gh_users')) || []; } catch(e){}
-            
-            // Cek apakah username sudah ada (tidak peduli huruf besar/kecil)
-            if (users.find(u => u.username.toLowerCase() === user.toLowerCase())) {
-                return showToast("Gagal: Username sudah terdaftar!", true);
-            }
-
-            users.push({ username: user, password: pass, role: 'player', balance: 0 });
-            try { localStorage.setItem('gh_users', JSON.stringify(users)); } catch(e){}
-            
-            showToast("Pendaftaran sukses! Silakan Login.");
-            document.getElementById('reg-user').value = '';
-            document.getElementById('reg-pass').value = '';
-            showPage('login');
+        function getTrackerDocRef() {
+            // STRICT PATH RULE for Private Data: /artifacts/{appId}/users/{userId}/{collectionName}
+            return doc(db, 'artifacts', appId, 'users', userId, 'trackerData', 'main');
         }
 
-        function login() {
-            const user = document.getElementById('login-user').value.trim();
-            const pass = document.getElementById('login-pass').value.trim();
-            
-            if (!user || !pass) return showToast("Mohon isi form login!", true);
+        function listenToData() {
+            if (!userId) return;
+            if (unsubscribe) unsubscribe();
 
-            let users = [];
-            try { users = JSON.parse(localStorage.getItem('gh_users')) || []; } catch(e){}
-            
-            let account = users.find(u => u.username === user && u.password === pass);
-            
-            if (account) {
-                try { localStorage.setItem('gh_currentUser', JSON.stringify(account)); } catch(e){}
-                showToast("Berhasil masuk, bosku!");
-                document.getElementById('login-user').value = '';
-                document.getElementById('login-pass').value = '';
+            const docRef = getTrackerDocRef();
+            unsubscribe = onSnapshot(docRef, (snap) => {
+                if (snap.exists()) {
+                    appState = snap.data();
+                } else {
+                    // Initialize first time
+                    const now = Date.now();
+                    appState = {
+                        lastRelapse: now,
+                        currentIntervalMs: ONE_DAY_MS,
+                        targetTime: now + ONE_DAY_MS
+                    };
+                    setDoc(docRef, appState);
+                }
                 updateUI();
-                showPage('home');
-            } else {
-                showToast("Salah username atau password!", true);
-            }
-        }
-
-        function logout() {
-            try { localStorage.removeItem('gh_currentUser'); } catch(e){}
-            updateUI();
-            toggleSidebar();
-            showPage('home');
-            showToast("Anda telah keluar.");
-        }
-
-        // === UPDATE ANTARMUKA OTOMATIS ===
-        function updateUI() {
-            let currentUser = null;
-            try { currentUser = JSON.parse(localStorage.getItem('gh_currentUser')); } catch(e){}
-            
-            if (currentUser) {
-                document.getElementById('header-balance').innerText = formatRupiah(currentUser.balance);
-                
-                document.getElementById('sidebar-auth-buttons').classList.add('hidden');
-                document.getElementById('sidebar-user-info').classList.remove('hidden');
-                document.getElementById('sidebar-username').innerText = currentUser.username;
-                
-                document.getElementById('prof-username').innerText = currentUser.username;
-                document.getElementById('prof-balance').innerText = formatRupiah(currentUser.balance);
-                
-                // Atur Tampilan Menu Bawah Berdasarkan Role Admin/Player
-                if (currentUser.role === 'admin') {
-                    document.getElementById('nav-admin').classList.remove('hidden');
-                    document.getElementById('nav-profile').classList.add('hidden');
-                } else {
-                    document.getElementById('nav-admin').classList.add('hidden');
-                    document.getElementById('nav-profile').classList.remove('hidden');
-                }
-            } else {
-                // Jika belum login
-                document.getElementById('header-balance').innerText = 'Rp 0';
-                document.getElementById('sidebar-auth-buttons').classList.remove('hidden');
-                document.getElementById('sidebar-user-info').classList.add('hidden');
-                
-                document.getElementById('nav-admin').classList.add('hidden');
-                document.getElementById('nav-profile').classList.remove('hidden');
-            }
-        }
-
-        // === FITUR DEPOSIT ===
-        function deposit() {
-            let inputEl = document.getElementById('deposit-amount');
-            let amount = parseInt(inputEl.value);
-            
-            if (isNaN(amount) || amount < 10000) return showToast("Minimal deposit adalah Rp 10.000", true);
-            
-            let currentUser = null;
-            try { currentUser = JSON.parse(localStorage.getItem('gh_currentUser')); } catch(e){}
-            if(!currentUser) return showToast("Error sesi login!", true);
-
-            currentUser.balance += amount;
-            inputEl.value = '';
-            
-            updateUserDatabase(currentUser);
-            showToast("Sukses! Saldo ditambahkan Rp " + amount.toLocaleString('id-ID'));
-        }
-
-        // === LOGIKA GAME (10% WIN RATE + ANIMASI) ===
-        function playGame(gameName) {
-            let currentUser = null;
-            try { currentUser = JSON.parse(localStorage.getItem('gh_currentUser')); } catch(e){}
-            
-            if (!currentUser) {
-                showToast("Anda harus login untuk bermain!", true);
-                showPage('login');
-                return;
-            }
-            
-            document.getElementById('game-title').innerText = gameName;
-            document.getElementById('game-balance').innerText = formatRupiah(currentUser.balance);
-            document.getElementById('game-outcome').innerText = ""; // Bersihkan hasil sebelumnya
-            showPage('play');
-        }
-
-        function spinGame() {
-            let currentUser = null;
-            try { currentUser = JSON.parse(localStorage.getItem('gh_currentUser')); } catch(e){}
-            if(!currentUser) return showToast("Sesi habis, silakan login ulang", true);
-
-            let betAmountEl = document.getElementById('bet-amount');
-            let bet = parseInt(betAmountEl.value);
-            
-            if (isNaN(bet) || bet < 1000) return showToast("Minimal pasang Rp 1.000", true);
-            if (currentUser.balance < bet) return showToast("Saldo habis! Silakan deposit dulu.", true);
-            
-            // 1. Potong Saldo Taruhan
-            currentUser.balance -= bet;
-            updateUserDatabase(currentUser);
-            document.getElementById('game-balance').innerText = formatRupiah(currentUser.balance);
-
-            // 2. Kunci Tombol & Mainkan Animasi Visual
-            let btn = document.getElementById('spin-btn');
-            btn.innerHTML = "🎰 MENGACAK... 🎰";
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed', 'animate-pulse');
-
-            let outcomeEl = document.getElementById('game-outcome');
-            outcomeEl.innerText = "Berputar... 🌪️";
-            outcomeEl.className = "text-2xl font-bold mt-6 h-10 text-yellow-400";
-
-            // 3. Proses Algoritma dengan Delay (Agar terlihat seperti loading server)
-            setTimeout(() => {
-                // KEMUNGKINAN MENANG MUTLAK 10%
-                const isWin = Math.random() < 0.10; 
-                
-                if (isWin) {
-                    let multiplier = Math.floor(Math.random() * 4) + 2; // Pengali 2x - 5x
-                    let winAmount = bet * multiplier;
-                    currentUser.balance += winAmount;
-                    
-                    showToast(`JACKPOT! Anda Menang ${multiplier}X lipat!`);
-                    outcomeEl.innerText = `🎉 MENANG BESAR: +${formatRupiah(winAmount)} 🎉`;
-                    outcomeEl.className = "text-2xl font-bold mt-6 h-10 text-green-500 drop-shadow-[0_0_10px_rgba(0,255,0,0.8)]";
-                } else {
-                    showToast("Rungkad! Belum beruntung bos.", true);
-                    outcomeEl.innerText = "❌ RUNGKAD ❌";
-                    outcomeEl.className = "text-2xl font-bold mt-6 h-10 text-red-500 drop-shadow-[0_0_10px_rgba(255,0,0,0.8)]";
-                }
-                
-                // Simpan & Perbarui Tampilan
-                updateUserDatabase(currentUser);
-                document.getElementById('game-balance').innerText = formatRupiah(currentUser.balance);
-                
-                // Kembalikan Tombol
-                btn.innerHTML = "MAINKAN (SPIN)";
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed', 'animate-pulse');
-            }, 1500); // 1.5 detik loading
-        }
-
-        // Fungsi Helper untuk sinkronisasi Database
-        function updateUserDatabase(updatedUser) {
-            try {
-                localStorage.setItem('gh_currentUser', JSON.stringify(updatedUser));
-                let users = JSON.parse(localStorage.getItem('gh_users')) || [];
-                let index = users.findIndex(u => u.username === updatedUser.username);
-                
-                if (index !== -1) {
-                    users[index].balance = updatedUser.balance;
-                    localStorage.setItem('gh_users', JSON.stringify(users));
-                }
-            } catch(e) { console.error("Gagal menyimpan data."); }
-            updateUI();
-        }
-
-        // === FITUR ADMIN PANEL ===
-        function loadAdminData() {
-            let users = [];
-            try { users = JSON.parse(localStorage.getItem('gh_users')) || []; } catch(e){}
-            
-            let tbody = document.getElementById('admin-user-list');
-            tbody.innerHTML = ''; // Kosongkan tabel
-            
-            users.forEach(u => {
-                let tr = document.createElement('tr');
-                let roleColor = u.role === 'admin' ? 'text-yellow-500 font-bold bg-[#333]' : 'text-gray-300';
-                let roleText = u.role === 'admin' ? '🛡️ ADMIN' : '👤 Player';
-                
-                tr.className = "hover:bg-[#222] transition-colors";
-                tr.innerHTML = `
-                    <td class="p-3 border-b border-gray-800 ${roleColor}">${u.username}</td>
-                    <td class="p-3 border-b border-gray-800 text-xs ${roleColor}">${roleText}</td>
-                    <td class="p-3 border-b border-gray-800 text-green-400 font-bold">${formatRupiah(u.balance)}</td>
-                `;
-                tbody.appendChild(tr);
+            }, (error) => {
+                console.error("Snapshot Error:", error);
             });
         }
 
-        // === JALANKAN SCRIPT SEGERA SETELAH DIMUAT ===
-        initDB();
+        function formatTime(ms) {
+            if (ms < 0) ms = 0;
+            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const mins = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const secs = Math.floor((ms % (1000 * 60)) / 1000);
+
+            let str = '';
+            if (days > 0) str += `${days}h `;
+            str += `${hours.toString().padStart(2, '0')}j ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}d`;
+            return str;
+        }
+
+        function updateUI() {
+            const daysInterval = appState.currentIntervalMs / ONE_DAY_MS;
+            intervalDisplay.textContent = `${daysInterval} Hari`;
+        }
+
+        function updateTimer() {
+            if (!appState.lastRelapse) return;
+
+            const now = Date.now();
+            
+            // Elapsed Time
+            const elapsed = now - appState.lastRelapse;
+            timeElapsedEl.textContent = formatTime(elapsed);
+
+            // Remaining Time
+            if (appState.targetTime > now) {
+                // Still waiting
+                const remaining = appState.targetTime - now;
+                timeRemainingEl.textContent = formatTime(remaining);
+                timeRemainingEl.className = "text-2xl font-mono font-semibold text-amber-400";
+                
+                actionBtn.disabled = true;
+                btnText.textContent = "BELUM WAKTUNYA";
+                actionBtn.classList.remove('bg-pink-600', 'hover:bg-pink-500');
+                actionBtn.classList.add('bg-slate-800', 'text-slate-500');
+            } else {
+                // Target reached
+                timeRemainingEl.textContent = "TARGET TERCAPAI!";
+                timeRemainingEl.className = "text-2xl font-mono font-bold text-emerald-400";
+                
+                actionBtn.disabled = false;
+                btnText.textContent = "SAYA SUDAH MELAKUKANNYA";
+                actionBtn.classList.remove('bg-slate-800', 'text-slate-500');
+                actionBtn.classList.add('bg-pink-600', 'hover:bg-pink-500');
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+            updateTimer(); // Initial call
+        }
+
+        actionBtn.addEventListener('click', () => {
+            customModal.classList.remove('hidden');
+            customModal.classList.add('flex');
+        });
+
+        const closeModal = () => {
+            customModal.classList.add('hidden');
+            customModal.classList.remove('flex');
+        };
+
+        modalCancel.addEventListener('click', closeModal);
+        modalBackdrop.addEventListener('click', closeModal);
+
+        modalConfirm.addEventListener('click', async () => {
+            closeModal();
+            if (!userId) return;
+
+            actionBtn.disabled = true;
+            btnText.textContent = "MENYIMPAN...";
+
+            const now = Date.now();
+            // Double the interval
+            const newInterval = appState.currentIntervalMs * 2;
+            const newTarget = now + newInterval;
+
+            const newState = {
+                lastRelapse: now,
+                currentIntervalMs: newInterval,
+                targetTime: newTarget
+            };
+
+            try {
+                await setDoc(getTrackerDocRef(), newState);
+                // The onSnapshot will automatically trigger UI updates
+            } catch (error) {
+                console.error("Save Error:", error);
+                btnText.textContent = "GAGAL MENYIMPAN";
+            }
+        });
+
+        tabTiktok.addEventListener('click', () => {
+            tabTiktok.classList.replace('text-slate-400', 'text-white');
+            tabTiktok.classList.replace('bg-transparent', 'bg-slate-700');
+            
+            tabIg.classList.replace('text-white', 'text-slate-400');
+            tabIg.classList.replace('bg-slate-700', 'bg-transparent');
+            
+            contentTiktok.classList.remove('hidden');
+            contentIg.classList.add('hidden');
+        });
+
+        tabIg.addEventListener('click', () => {
+            tabIg.classList.replace('text-slate-400', 'text-white');
+            tabIg.classList.replace('bg-transparent', 'bg-slate-700');
+            
+            tabTiktok.classList.replace('text-white', 'text-slate-400');
+            tabTiktok.classList.replace('bg-slate-700', 'bg-transparent');
+            
+            contentIg.classList.remove('hidden');
+            contentTiktok.classList.add('hidden');
+        });
+
+        function loadEmbedScripts() {
+            // Load TikTok
+            const ttScript = document.createElement('script');
+            ttScript.async = true;
+            ttScript.src = "https://www.tiktok.com/embed.js";
+            document.body.appendChild(ttScript);
+
+            // Load Instagram
+            const igScript = document.createElement('script');
+            igScript.async = true;
+            igScript.src = "//www.instagram.com/embed.js";
+            document.body.appendChild(igScript);
+            
+            // Re-process widgets after a slight delay to ensure they render
+            setTimeout(() => {
+                if (window.instgrm) window.instgrm.Embeds.process();
+            }, 2000);
+        }
+
+        // Start App
+        initApp();
+
     </script>
 </body>
 </html>
