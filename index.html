@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Progressive Tracker & Image Search</title>
+    <title>Progressive Tracker & Search</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -31,7 +31,7 @@
             padding: 30px;
             border-radius: 12px;
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
             text-align: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             margin-bottom: 20px;
@@ -86,86 +86,75 @@
             cursor: not-allowed;
         }
 
-        .media-section {
+        /* Styling Bagian Pencarian */
+        .search-section {
             background-color: var(--container-bg);
-            padding: 20px;
+            padding: 25px;
             border-radius: 12px;
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            text-align: center;
+            box-sizing: border-box;
         }
 
-        .media-section h2 {
+        .search-section h2 {
             font-size: 1.2rem;
+            margin-top: 0;
             margin-bottom: 15px;
+            text-align: center;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
         }
 
-        .search-container {
+        .search-controls {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            flex-direction: column;
+            gap: 15px;
         }
 
-        .search-container input {
-            flex: 1;
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            text-align: left;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="text"], select {
+            width: 100%;
             padding: 12px;
             border-radius: 8px;
             border: 1px solid #444;
             background-color: var(--input-bg);
             color: white;
             font-size: 1rem;
+            box-sizing: border-box;
         }
 
-        .search-container input:focus {
+        input[type="text"]:focus, select:focus {
             outline: none;
             border-color: var(--accent);
         }
 
-        .search-container button {
+        button.btn-search {
             background-color: var(--accent);
             color: #121212;
             border: none;
-            padding: 0 20px;
+            padding: 15px;
+            font-size: 1rem;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
             transition: opacity 0.2s;
+            margin-top: 5px;
         }
 
-        .search-container button:hover {
+        button.btn-search:hover {
             opacity: 0.8;
-        }
-
-        .image-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-            max-height: 500px;
-            overflow-y: auto;
-            padding-right: 5px;
-        }
-
-        .image-grid::-webkit-scrollbar {
-            width: 8px;
-        }
-        .image-grid::-webkit-scrollbar-track {
-            background: #121212;
-            border-radius: 8px;
-        }
-        .image-grid::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 8px;
-        }
-
-        .image-item {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 8px;
-            background-color: #000;
         }
 
         #loading-overlay {
@@ -185,6 +174,7 @@
 
     <div id="loading-overlay">Menghubungkan ke Firebase...</div>
 
+    <!-- Timer Section -->
     <div class="container">
         <h1>Progressive Tracker</h1>
         <p class="subtitle">Waktu tunggu akan berlipat ganda setiap kali tombol ditekan.</p>
@@ -201,83 +191,59 @@
         <button class="btn-reset" id="btn-action">SAYA SUDAH MELAKUKANNYA</button>
     </div>
 
-    <div class="media-section">
-        <h2>Pencarian Gambar Langsung</h2>
-        
-        <div class="search-container">
-            <input type="text" id="search-input" placeholder="Ketik kata kunci pencarian di sini..." onkeypress="handleKeyPress(event)">
-            <button onclick="searchImages()">Cari</button>
-        </div>
+    <!-- Search Section -->
+    <div class="search-section">
+        <h2>Pencarian Media</h2>
+        <div class="search-controls">
+            
+            <div class="input-group">
+                <label for="search-input">Kata Kunci Pencarian</label>
+                <input type="text" id="search-input" placeholder="Ketik apa yang ingin Anda cari..." onkeypress="handleKeyPress(event)">
+            </div>
 
-        <div id="search-status" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;"></div>
-        
-        <div class="image-grid" id="image-results">
+            <div class="input-group">
+                <label for="search-platform">Pilih Platform</label>
+                <select id="search-platform">
+                    <option value="google">Google Images (Gambar)</option>
+                    <option value="tiktok">TikTok (Video)</option>
+                </select>
+            </div>
+
+            <button class="btn-search" onclick="executeSearch()">Cari di Tab Baru</button>
+
         </div>
     </div>
 
-    <!-- Script Pencarian Gambar Menggunakan Proxy -->
+    <!-- Script Pencarian -->
     <script>
         function handleKeyPress(e) {
             if (e.key === 'Enter') {
-                searchImages();
+                executeSearch();
             }
         }
 
-        async function searchImages() {
-            const query = document.getElementById('search-input').value.trim();
-            const resultsDiv = document.getElementById('image-results');
-            const statusDiv = document.getElementById('search-status');
+        function executeSearch() {
+            const query = document.getElementById("search-input").value.trim();
+            const platform = document.getElementById("search-platform").value;
             
-            if (!query) return;
+            if (!query) {
+                alert("Silakan masukkan kata kunci pencarian terlebih dahulu.");
+                return;
+            }
 
-            statusDiv.innerText = "Mencari gambar (menghubungkan via proxy HTTP)...";
-            resultsDiv.innerHTML = "";
+            let searchUrl = "";
+            
+            if (platform === "google") {
+                // Format URL pencarian Google khusus Gambar
+                searchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
+            } else if (platform === "tiktok") {
+                // Format URL pencarian TikTok
+                searchUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(query)}`;
+            }
 
-            try {
-                // Endpoint Reddit dibungkus dengan allorigins untuk mem-bypass error jaringan lokal
-                const targetUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&include_over_18=on&limit=50&sort=relevance`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (!data.data || !data.data.children) {
-                    throw new Error("Struktur data tidak sesuai ekspektasi.");
-                }
-
-                const posts = data.data.children;
-                let foundImages = 0;
-
-                posts.forEach(post => {
-                    const originalUrl = post.data.url;
-                    
-                    if (originalUrl && (originalUrl.endsWith('.jpg') || originalUrl.endsWith('.png') || originalUrl.endsWith('.jpeg') || originalUrl.endsWith('.gif'))) {
-                        const img = document.createElement('img');
-                        
-                        // Gambar juga di-proxy agar lolos dari blokir saat di-render browser
-                        img.src = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}`;
-                        img.className = 'image-item';
-                        
-                        img.onerror = function() { this.style.display = 'none'; }; 
-                        resultsDiv.appendChild(img);
-                        foundImages++;
-                    }
-                });
-
-                if (foundImages === 0) {
-                    statusDiv.innerText = "Gambar tidak ditemukan. Coba gunakan kata kunci bahasa Inggris.";
-                } else {
-                    statusDiv.innerText = `Menampilkan hasil pencarian untuk: "${query}"`;
-                }
-
-            } catch (error) {
-                statusDiv.innerText = `Gagal mengambil gambar: ${error.message}`;
-                console.error("Fetch API Error:", error);
+            // Membuka URL di tab baru
+            if (searchUrl) {
+                window.open(searchUrl, "_blank");
             }
         }
     </script>
@@ -287,7 +253,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-        // Konfigurasi Anda
+        // Konfigurasi Firebase Anda (smart-relay-esp32-e285e)
         const firebaseConfig = {
             apiKey: "AIzaSyDVVNrVrW46U8qQdgXSbjqUh6MZgWGd2zc",
             authDomain: "smart-relay-esp32-e285e.firebaseapp.com",
@@ -329,7 +295,7 @@
                 loadingOverlay.style.display = "none";
             } catch (error) {
                 console.error("Error loading Firebase data:", error);
-                alert("Gagal memuat data. Cek aturan Firestore Database Anda.");
+                alert("Gagal memuat data dari Firebase. Pastikan koneksi dan aturan database Anda benar.");
                 loadingOverlay.style.display = "none";
             }
         }
@@ -348,7 +314,7 @@
                 updateUI();
             } catch (error) {
                 console.error("Error saving to Firebase:", error);
-                alert("Gagal menyimpan data!");
+                alert("Gagal menyimpan data ke Firebase!");
             }
             btnAction.disabled = false;
             btnAction.innerText = "SAYA SUDAH MELAKUKANNYA";
