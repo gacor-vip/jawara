@@ -103,7 +103,6 @@
             padding-bottom: 10px;
         }
 
-        /* Styling untuk form pencarian */
         .search-container {
             display: flex;
             gap: 10px;
@@ -140,7 +139,6 @@
             opacity: 0.8;
         }
 
-        /* Grid untuk hasil gambar */
         .image-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -187,7 +185,6 @@
 
     <div id="loading-overlay">Menghubungkan ke Firebase...</div>
 
-    <!-- Timer Section -->
     <div class="container">
         <h1>Progressive Tracker</h1>
         <p class="subtitle">Waktu tunggu akan berlipat ganda setiap kali tombol ditekan.</p>
@@ -204,7 +201,6 @@
         <button class="btn-reset" id="btn-action">SAYA SUDAH MELAKUKANNYA</button>
     </div>
 
-    <!-- Media Section (Pencarian Gambar Kustom) -->
     <div class="media-section">
         <h2>Pencarian Gambar Langsung</h2>
         
@@ -215,13 +211,11 @@
 
         <div id="search-status" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;"></div>
         
-        <!-- Wadah Hasil Gambar -->
         <div class="image-grid" id="image-results">
-            <!-- Gambar akan muncul di sini -->
         </div>
     </div>
 
-    <!-- Script Pencarian Gambar -->
+    <!-- Script Pencarian Gambar Menggunakan Proxy -->
     <script>
         function handleKeyPress(e) {
             if (e.key === 'Enter') {
@@ -236,25 +230,39 @@
             
             if (!query) return;
 
-            statusDiv.innerText = "Mencari gambar...";
+            statusDiv.innerText = "Mencari gambar (menghubungkan via proxy HTTP)...";
             resultsDiv.innerHTML = "";
 
             try {
-                // Menggunakan public JSON API yang tidak diblokir CORS dan mendukung pencarian konten secara luas
-                const response = await fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&include_over_18=on&limit=50&sort=relevance`);
+                // Endpoint Reddit dibungkus dengan allorigins untuk mem-bypass error jaringan lokal
+                const targetUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&include_over_18=on&limit=50&sort=relevance`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
+                if (!data.data || !data.data.children) {
+                    throw new Error("Struktur data tidak sesuai ekspektasi.");
+                }
+
                 const posts = data.data.children;
                 let foundImages = 0;
 
                 posts.forEach(post => {
-                    const url = post.data.url;
-                    // Hanya mengambil link yang murni berakhiran gambar
-                    if (url && (url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg') || url.endsWith('.gif'))) {
+                    const originalUrl = post.data.url;
+                    
+                    if (originalUrl && (originalUrl.endsWith('.jpg') || originalUrl.endsWith('.png') || originalUrl.endsWith('.jpeg') || originalUrl.endsWith('.gif'))) {
                         const img = document.createElement('img');
-                        img.src = url;
+                        
+                        // Gambar juga di-proxy agar lolos dari blokir saat di-render browser
+                        img.src = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}`;
                         img.className = 'image-item';
-                        // Jika gambar gagal dimuat, sembunyikan
+                        
                         img.onerror = function() { this.style.display = 'none'; }; 
                         resultsDiv.appendChild(img);
                         foundImages++;
@@ -262,14 +270,14 @@
                 });
 
                 if (foundImages === 0) {
-                    statusDiv.innerText = "Gambar tidak ditemukan. Coba gunakan kata kunci bahasa Inggris yang lebih umum.";
+                    statusDiv.innerText = "Gambar tidak ditemukan. Coba gunakan kata kunci bahasa Inggris.";
                 } else {
                     statusDiv.innerText = `Menampilkan hasil pencarian untuk: "${query}"`;
                 }
 
             } catch (error) {
-                statusDiv.innerText = "Terjadi kesalahan saat mengambil gambar.";
-                console.error(error);
+                statusDiv.innerText = `Gagal mengambil gambar: ${error.message}`;
+                console.error("Fetch API Error:", error);
             }
         }
     </script>
@@ -279,7 +287,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-        // Konfigurasi Firebase Anda
+        // Konfigurasi Anda
         const firebaseConfig = {
             apiKey: "AIzaSyDVVNrVrW46U8qQdgXSbjqUh6MZgWGd2zc",
             authDomain: "smart-relay-esp32-e285e.firebaseapp.com",
@@ -321,7 +329,7 @@
                 loadingOverlay.style.display = "none";
             } catch (error) {
                 console.error("Error loading Firebase data:", error);
-                alert("Gagal memuat data. Pastikan Firestore Database diaktifkan pada project smart-relay-esp32-e285e Anda.");
+                alert("Gagal memuat data. Cek aturan Firestore Database Anda.");
                 loadingOverlay.style.display = "none";
             }
         }
@@ -340,7 +348,7 @@
                 updateUI();
             } catch (error) {
                 console.error("Error saving to Firebase:", error);
-                alert("Gagal menyimpan data ke Firebase!");
+                alert("Gagal menyimpan data!");
             }
             btnAction.disabled = false;
             btnAction.innerText = "SAYA SUDAH MELAKUKANNYA";
