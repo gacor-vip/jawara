@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Progressive Tracker & Media Feed</title>
+    <title>Progressive Tracker & Image Search</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -30,7 +30,7 @@
             padding: 30px;
             border-radius: 12px;
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             text-align: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             margin-bottom: 20px;
@@ -90,60 +90,17 @@
             padding: 20px;
             border-radius: 12px;
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            text-align: left;
         }
 
         .media-section h2 {
             font-size: 1.2rem;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             text-align: center;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
-        }
-
-        /* Desain Wadah Scroll (Feed) */
-        .scroll-feed {
-            max-height: 70vh; /* Tinggi wadah menyesuaikan layar */
-            overflow-y: auto; /* Memungkinkan scroll vertikal */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px; /* Jarak antar video */
-            padding-right: 10px;
-        }
-
-        /* Modifikasi Scrollbar agar terlihat lebih elegan */
-        .scroll-feed::-webkit-scrollbar {
-            width: 8px;
-        }
-        .scroll-feed::-webkit-scrollbar-track {
-            background: #121212;
-            border-radius: 8px;
-        }
-        .scroll-feed::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 8px;
-        }
-        .scroll-feed::-webkit-scrollbar-thumb:hover {
-            background: var(--accent);
-        }
-
-        .embed-item {
-            width: 100%;
-            max-width: 350px;
-            background-color: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            flex-shrink: 0;
-            min-height: 580px; /* Tinggi standar video vertikal */
-        }
-
-        iframe {
-            border: none;
-            width: 100%;
-            height: 100%;
-            min-height: 580px;
         }
 
         #loading-overlay {
@@ -156,6 +113,16 @@
             z-index: 1000;
             color: var(--accent);
             font-size: 1.2rem;
+        }
+
+        /* Styling penyesuaian untuk Google Custom Search di Dark Mode */
+        .gsc-control-cse {
+            background-color: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+        .gsc-input-box {
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -180,32 +147,17 @@
         <button class="btn-reset" id="btn-action">SAYA SUDAH MELAKUKANNYA</button>
     </div>
 
-    <!-- Media Section (Feed) -->
+    <!-- Media Section -->
     <div class="media-section">
-        <h2>Feed Konten (Scroll ke Bawah)</h2>
+        <h2>Pencarian Web Terpadu</h2>
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 15px;">
+            Gunakan kolom di bawah untuk mencari gambar. Hasil akan ditampilkan langsung di sini.
+        </p>
         
-        <!-- Wadah Scroll -->
-        <div class="scroll-feed">
-            
-            <!-- Video 1 (TikTok) -->
-            <div class="embed-item">
-                <iframe src="https://vt.tiktok.com/ZSbjUpxn9/" allowfullscreen scrolling="no" allow="encrypted-media;"></iframe>
-            </div>
-
-            <!-- Video 2 (TikTok) - Ganti angka ID di bagian belakang link untuk video lain -->
-            <div class="embed-item">
-                <iframe src="https://vt.tiktok.com/ZSbjy1VaR/" allowfullscreen scrolling="no" allow="encrypted-media;"></iframe>
-            </div>
-
-            <!-- Video 3 (Instagram) -->
-            <div class="embed-item">
-                <!-- Ganti link dengan link Instagram /embed yang Anda inginkan -->
-                <iframe src="https://www.instagram.com/p/C0A_abcD123/embed" allowfullscreen scrolling="no" allow="encrypted-media;"></iframe>
-            </div>
-
-            <!-- Anda bisa menyalin <div class="embed-item"> di atas dan menempelkannya di sini sebanyak yang Anda mau untuk menambah daftar scroll -->
-
-        </div>
+        <!-- Google Programmable Search Engine -->
+        <!-- Atribut data-defaultToImageSearch="true" akan otomatis memprioritaskan hasil gambar -->
+        <script async src="https://cse.google.com/cse.js?cx=KODE_CX_ANDA_DISINI"></script>
+        <div class="gcse-search" data-defaultToImageSearch="true"></div>
     </div>
 
     <!-- Firebase SDK (Modular v9) -->
